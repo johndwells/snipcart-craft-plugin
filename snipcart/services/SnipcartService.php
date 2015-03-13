@@ -17,7 +17,7 @@ class SnipcartService extends BaseApplicationComponent
 	{
 		parent::init();
 
-		$this->_settings    = craft()->plugins->getPlugin('snipcart')->getSettings();
+		$this->_settings    = $this->_initSettings();
 		$this->_snipcartUrl = 'https://app.snipcart.com/api/';
 		$this->_isLinked    = isset($this->_settings->apiKey) && ! empty($this->_snipcartUrl);
 	}
@@ -177,6 +177,40 @@ class SnipcartService extends BaseApplicationComponent
 		return $endDate;
 	}
 
+
+	// ------------------------------------------------------------------------
+	// Protected Methods
+	// ------------------------------------------------------------------------
+	
+	/**
+	 * Internal method to fetch our settings, either from DB or filesystem config
+	 *
+	 * @return Craft\Model
+	 */
+	public function _initSettings()
+	{
+		// start by fetching DB settings
+		$settings = craft()->plugins->getPlugin('snipcart')->getSettings();
+
+		// as of v2.0 we can take filesystem configs
+		if(version_compare('2.0', craft()->getVersion(), '<='))
+		{
+			// get array of attributes (as defined in SnipcartPlugin.php)
+			$settingsAttributes = $settings->getAttributes();
+
+			// loop through each attribute
+			foreach($settingsAttributes as $attribute => $value)
+			{
+				// if we have a filesystem config key set, then use it
+				if(craft()->config->exists($attribute, 'snipcart'))
+				{
+					$settings->$attribute = craft()->config->get($attribute, 'snipcart');
+				}
+			}
+		}
+
+		return $settings;
+	}
 
 	// ------------------------------------------------------------------------
 	// Private Methods
